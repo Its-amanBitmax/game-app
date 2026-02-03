@@ -20,12 +20,11 @@ exports.googleLogin = (req, res) => {
 exports.googleCallback = async (req, res) => {
   try {
     const code = req.query.code;
-
+ 
     if (!code) {
-      return res.status(400).json({ message: "No code received from Google" });
+      return res.status(400).send("No code received from Google");
     }
-
-    // 🔹 Exchange code for access token
+ 
     const tokenResponse = await axios.post(
       "https://oauth2.googleapis.com/token",
       qs.stringify({
@@ -33,28 +32,28 @@ exports.googleCallback = async (req, res) => {
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
         redirect_uri: process.env.GOOGLE_CALLBACK_URL,
         grant_type: "authorization_code",
-        code: code
+        code: code,
       }),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
     );
-
+ 
     const accessToken = tokenResponse.data.access_token;
-
-    // 🔹 Get user profile from Google
+ 
     const userInfoResponse = await axios.get(
       "https://www.googleapis.com/oauth2/v2/userinfo",
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
+          Authorization: `Bearer ${accessToken}`,
+        },
       }
     );
-
+ 
     const { id: googleId, email, name, picture } = userInfoResponse.data;
-
-    // 🔹 Save user in DB
+ 
     let user = await User.findOne({ email });
-
+ 
     if (user) {
       if (!user.googleId) {
         user.googleId = googleId;
@@ -71,23 +70,23 @@ exports.googleCallback = async (req, res) => {
         name,
         profilePic: picture,
         provider: "google",
-        isVerified: true
+        isVerified: true,
       });
     }
-
-    // ❌ No JWT
-    return res.status(200).json({
-      success: true,
-      message: "Google login successful",
-      user
-    });
-
+ 
+    // ✅ Redirect to Dashboard with userId
+    return res.redirect(
+      `https://game-app-2rng.onrender.com/dashboard?uid=${user._id}`
+    );
+ 
   } catch (error) {
-    console.error("Google Callback Error:", error.response?.data || error.message);
-    res.status(500).json({
-      success: false,
-      message: "Google authentication failed",
-      error: error.message
-    });
+    console.error(
+      "Google Callback Error:",
+      error.response?.data || error.message
+    );
+ 
+    return res.redirect(
+      "https://game-app-2rng.onrender.com/login?error=google_auth_failed"
+    );
   }
 };
