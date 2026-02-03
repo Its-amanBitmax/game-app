@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const axios = require("axios");
 const qs = require("querystring");
+const jwt = require("jsonwebtoken");
 
 exports.googleLogin = (req, res) => {
   const redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
