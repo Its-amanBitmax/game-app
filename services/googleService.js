@@ -25,6 +25,7 @@ exports.googleCallback = async (req, res) => {
       return res.status(400).send("No code received from Google");
     }
  
+    // 1️⃣ Exchange code for access token
     const tokenResponse = await axios.post(
       "https://oauth2.googleapis.com/token",
       qs.stringify({
@@ -32,7 +33,7 @@ exports.googleCallback = async (req, res) => {
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
         redirect_uri: process.env.GOOGLE_CALLBACK_URL,
         grant_type: "authorization_code",
-        code: code,
+        code,
       }),
       {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -41,6 +42,7 @@ exports.googleCallback = async (req, res) => {
  
     const accessToken = tokenResponse.data.access_token;
  
+    // 2️⃣ Fetch user info from Google
     const userInfoResponse = await axios.get(
       "https://www.googleapis.com/oauth2/v2/userinfo",
       {
@@ -52,6 +54,7 @@ exports.googleCallback = async (req, res) => {
  
     const { id: googleId, email, name, picture } = userInfoResponse.data;
  
+    // 3️⃣ Find or create user
     let user = await User.findOne({ email });
  
     if (user) {
@@ -74,10 +77,9 @@ exports.googleCallback = async (req, res) => {
       });
     }
  
-    // ✅ Redirect to Dashboard with userId
-    return res.redirect(
-      `https://game-app-2rng.onrender.com/dashboard?uid=${user._id}`
-    );
+    // 4️⃣ ONLY responsibility of backend:
+    // send userId to frontend auth handler
+    return res.redirect(`/auth/success?uid=${user._id}`);
  
   } catch (error) {
     console.error(
@@ -85,8 +87,7 @@ exports.googleCallback = async (req, res) => {
       error.response?.data || error.message
     );
  
-    return res.redirect(
-      "https://game-app-2rng.onrender.com/login?error=google_auth_failed"
-    );
+    // frontend failure handler
+    return res.redirect(`/auth/failure`);
   }
 };
