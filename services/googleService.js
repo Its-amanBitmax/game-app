@@ -20,11 +20,14 @@ exports.googleLogin = (req, res) => {
 exports.googleCallback = async (req, res) => {
   try {
     const code = req.query.code;
- 
+
     if (!code) {
-      return res.status(400).send("No code received from Google");
+      return res.status(400).json({
+        success: false,
+        message: "No code received from Google",
+      });
     }
- 
+
     // 1️⃣ Exchange code for access token
     const tokenResponse = await axios.post(
       "https://oauth2.googleapis.com/token",
@@ -39,9 +42,9 @@ exports.googleCallback = async (req, res) => {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
       }
     );
- 
+
     const accessToken = tokenResponse.data.access_token;
- 
+
     // 2️⃣ Fetch user info from Google
     const userInfoResponse = await axios.get(
       "https://www.googleapis.com/oauth2/v2/userinfo",
@@ -51,12 +54,12 @@ exports.googleCallback = async (req, res) => {
         },
       }
     );
- 
+
     const { id: googleId, email, name, picture } = userInfoResponse.data;
- 
+
     // 3️⃣ Find or create user
     let user = await User.findOne({ email });
- 
+
     if (user) {
       if (!user.googleId) {
         user.googleId = googleId;
@@ -76,18 +79,38 @@ exports.googleCallback = async (req, res) => {
         isVerified: true,
       });
     }
- 
-    // 4️⃣ ONLY responsibility of backend:
-    // send userId to frontend auth handler
-    return res.redirect(`/auth/success?uid=${user._id}`);
- 
+
+    // 4️⃣ Generate JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // ✅ Send JSON response instead of redirect
+    return res.status(200).json({
+      success: true,
+      message: "Google login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePic: user.profilePic,
+        provider: user.provider,
+      },
+    });
+
   } catch (error) {
     console.error(
       "Google Callback Error:",
       error.response?.data || error.message
     );
- 
-    // frontend failure handler
-    return res.redirect(`/auth/failure`);
+
+    return res.status(500).json({
+      success: false,
+      message: "Google login failed",
+      error: error.response?.data || error.message,
+    });
   }
 };
