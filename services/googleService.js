@@ -88,19 +88,8 @@ exports.googleCallback = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // ✅ Send JSON response instead of redirect
-    return res.status(200).json({
-      success: true,
-      message: "Google login successful",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profilePic: user.profilePic,
-        provider: user.provider,
-      },
-    });
+    // ✅ Redirect to frontend after successful login
+    return res.redirect(`http://localhost:3000/auth/success?uid=${user._id}`);
 
   } catch (error) {
     console.error(
@@ -108,10 +97,6 @@ exports.googleCallback = async (req, res) => {
       error.response?.data || error.message
     );
 
-    return res.status(500).json({
-      success: false,
-      message: "Google login failed",
-      error: error.response?.data || error.message,
-    });
+    return res.redirect("http://localhost:3000/auth/failure");
   }
 };
