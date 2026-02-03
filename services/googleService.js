@@ -6,7 +6,7 @@ exports.googleLogin = (req, res) => {
   const redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     qs.stringify({
       client_id: process.env.GOOGLE_CLIENT_ID,
-      redirect_uri: process.env.GOOGLE_CALLBACK_URI,
+      redirect_uri: process.env.GOOGLE_CALLBACK_URL,
       response_type: "code",
       scope: "profile email",
       access_type: "offline",
@@ -31,7 +31,7 @@ exports.googleCallback = async (req, res) => {
       qs.stringify({
         client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: process.env.GOOGLE_CALLBACK_URI,
+        redirect_uri: process.env.GOOGLE_CALLBACK_URL,
         grant_type: "authorization_code",
         code: code
       }),
